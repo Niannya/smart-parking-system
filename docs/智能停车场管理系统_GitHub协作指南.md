@@ -1,15 +1,15 @@
 # 智能停车场管理系统 GitHub 协作指南
 
-本指南面向没有 Git 和 GitHub 协作经验的组员，用于指导智能停车场管理系统的共同开发。内容覆盖首次建立仓库、日常开发、前后端与数据库协作、Pull Request、冲突处理和常见故障。
+本指南面向没有 Git 和 GitHub 协作经验的组员，用于指导智能停车场管理系统的共同开发。内容覆盖仓库接入、日常开发、前后端与数据库协作、Pull Request、冲突处理和常见故障。
 
-> 核心原则：`main` 只保存可运行代码，每项功能使用独立分支，通过 Pull Request 合并。
+> 核心原则：`main` 保存稳定里程碑，`dev` 汇总已评审的开发内容；每项任务使用独立分支并通过 Pull Request 合并到 `dev`。
 
 ## 目录
 
 - [1 当前项目约定](#1-当前项目约定)
 - [2 需要理解的基本概念](#2-需要理解的基本概念)
 - [3 项目目录与文件管理](#3-项目目录与文件管理)
-- [4 首次发布项目](#4-首次发布项目)
+- [4 仓库地址与成员配置](#4-仓库地址与成员配置)
 - [5 组员第一次配置](#5-组员第一次配置)
 - [6 每次开发的标准流程](#6-每次开发的标准流程)
 - [7 Pull Request 与合并](#7-pull-request-与合并)
@@ -28,18 +28,20 @@
 
 | 项目项 | 统一约定 |
 | --- | --- |
-| 仓库 | <https://github.com/xiaoze0216/smart-parking-system> |
+| 仓库 | <https://github.com/Niannya/smart-parking-system> |
+| 仓库所有者 | `Niannya` |
 | 当前仓库根目录 | `D:\Course\大三上\DB\db-app` |
 | 后端 | `backend`，Spring Boot 4.1.1，Java 21，Maven，MyBatis |
 | 前端 | `frontend`，Vue 3，Vite，Axios，Element Plus |
 | 数据库 | PostgreSQL，项目数据库名建议为 `smart_parking` |
 | 当前开发机端口 | 前端 `5173`，后端 `8081`，PostgreSQL `15432` |
 | 稳定分支 | `main` |
+| 日常集成分支 | `dev` |
 
 ### 1.1 最重要的六条规则
 
-1. 不要直接在 `main` 上开发业务功能。
-2. 开始任务前先同步最新 `main`，再创建自己的功能分支。
+1. 不要直接在 `main` 或 `dev` 上开发业务功能。
+2. 开始任务前先同步最新 `dev`，再创建自己的任务分支。
 3. 一个分支只完成一项明确任务，不把无关修改混在一起。
 4. 提交前查看 `git status` 和 `git diff`，并完成基本运行测试。
 5. 不上传数据库密码、物理数据目录、依赖目录和构建结果。
@@ -53,8 +55,8 @@
 | 分支 Branch | 相互隔离的一条开发线 | 每项功能创建一个 `feature` 分支 |
 | 提交 Commit | 保存在本机的一次版本快照 | 说明本次完成了什么 |
 | 推送 Push | 把本机提交上传至 GitHub | 让组员和 PR 能看到修改 |
-| 拉取 Pull | 下载并整合远程最新修改 | 开始工作前更新 `main` |
-| PR | 请求把分支合并到 `main` | 组员检查、测试、确认后合并 |
+| 拉取 Pull | 下载并整合远程最新修改 | 开始工作前更新 `dev` |
+| PR | 请求把任务分支合并到 `dev` | 组员检查、测试、确认后合并 |
 | 冲突 Conflict | Git 无法自动判断两份修改如何组合 | 由修改相关代码的组员共同处理 |
 
 ## 3 项目目录与文件管理
@@ -107,11 +109,11 @@ smart-parking-system/
 *.log
 ```
 
-## 4 首次发布项目
+## 4 仓库地址与成员配置
 
-这一节只需要由一名仓库负责人执行一次。其他组员不要再次运行 `git init`，也不要分别在 `backend` 和 `frontend` 中建立仓库。
+仓库已经建立并于 2026-10-15 转移到 `Niannya`。其他组员不要再次运行 `git init`，也不要分别在 `backend` 和 `frontend` 中建立仓库。
 
-### 4.1 上传前检查密码
+### 4.1 检查密码配置
 
 `application.properties` 应提交，但密码必须使用环境变量：
 
@@ -131,27 +133,21 @@ DB_PASSWORD=自己的数据库密码
 
 不同电脑可以使用不同的端口、用户名和密码，不需要修改已经提交的配置文件。
 
-### 4.2 初始化并连接远程仓库
+### 4.2 已有本地仓库更新远程地址
 
 ```powershell
 cd 'D:\Course\大三上\DB\db-app'
-git init
-git branch -M main
-git remote add origin https://github.com/xiaoze0216/smart-parking-system.git
+git remote set-url origin https://github.com/Niannya/smart-parking-system.git
 git remote -v
 ```
 
-### 4.3 第一次提交
+`fetch` 和 `push` 两行都显示新地址即为更新成功。旧地址虽然可能自动跳转，但所有组员仍应主动更新，避免以后产生混淆。
 
-```powershell
-git status
-git add .
-git status
-git commit -m "chore: initialize project framework"
-git push -u origin main
-```
+### 4.3 当前分支职责
 
-第二次执行 `git status` 是为了检查暂存区。如果看到 `node_modules`、`target`、数据库密码或无关大文件，应停止提交，先修正 `.gitignore` 或配置。
+- `main`：课程设计达到稳定里程碑后再由 `dev` 发起 PR 合入。
+- `dev`：日常开发的集成分支，任务分支通过 PR 合入此分支。
+- `feature/*`、`fix/*`、`docs/*`：组员完成具体任务的分支。
 
 ### 4.4 邀请组员
 
@@ -161,7 +157,7 @@ git push -u origin main
 GitHub 仓库 → Settings → Collaborators → Add people
 ```
 
-组员接受邀请后才能访问私有仓库。建议暂时不要授予删除仓库或修改关键设置的权限。
+组员接受邀请后才能访问私有仓库。个人账号名下的私有仓库中，仓库所有者负责邀请或移除协作者、修改默认分支及关键仓库设置。
 
 ## 5 组员第一次配置
 
@@ -170,8 +166,9 @@ GitHub 仓库 → Settings → Collaborators → Add people
 ### 5.1 克隆项目
 
 ```powershell
-git clone https://github.com/xiaoze0216/smart-parking-system.git
+git clone https://github.com/Niannya/smart-parking-system.git
 cd smart-parking-system
+git switch dev
 git status
 ```
 
@@ -201,8 +198,8 @@ git status
 ### 6.1 开始任务
 
 ```powershell
-git switch main
-git pull origin main
+git switch dev
+git pull origin dev
 git switch -c feature/parking-space-list
 ```
 
@@ -229,7 +226,7 @@ git status
 git diff
 git add backend/src/... frontend/src/... database/...
 git status
-git commit -m "feat: add parking space list"
+git commit -m "feat: 新增停车位列表"
 ```
 
 初学阶段建议明确写出需要暂存的文件路径。确认所有变化都属于同一任务后，也可以使用 `git add .`。
@@ -248,7 +245,7 @@ git push
 
 ## 7 Pull Request 与合并
 
-功能分支推送后，在 GitHub 创建 Pull Request。PR 的目标分支选择 `main`，来源分支选择本次功能分支。不要直接点击合并，至少由另一名组员完成一次检查。
+任务分支推送后，在 GitHub 创建 Pull Request。PR 的目标分支选择 `dev`，来源分支选择本次任务分支。不要直接点击合并，至少由另一名组员完成一次检查。
 
 ### 7.1 PR 描述应包含
 
@@ -269,23 +266,23 @@ git push
 ### 7.3 合并后的本地清理
 
 ```powershell
-git switch main
-git pull origin main
+git switch dev
+git pull origin dev
 git branch -d feature/parking-space-list
 ```
 
-只有在 GitHub 已经成功合并，并且本地 `main` 已同步后，才删除本地功能分支。
+只有在 GitHub 已经成功合并，并且本地 `dev` 已同步后，才删除本地任务分支。
 
 ## 8 分支和提交命名
 
 | 用途 | 分支或提交前缀 | 示例 |
 | --- | --- | --- |
-| 新增功能 | `feature` 或 `feat` | `feature/vehicle-entry`；`feat: add vehicle entry API` |
-| 修复错误 | `fix` | `fix/duplicate-entry`；`fix: prevent duplicate active records` |
-| 文档 | `docs` | `docs/er-diagram`；`docs: add database ER diagram` |
-| 配置与维护 | `chore` | `chore/config`；`chore: update development configuration` |
-| 代码整理 | `refactor` | `refactor/fee-service`；`refactor: simplify fee calculation` |
-| 测试 | `test` | `test/parking-record`；`test: add parking record tests` |
+| 新增功能 | `feature` 或 `feat` | `feature/vehicle-entry`；`feat: 新增车辆入场接口` |
+| 修复错误 | `fix` | `fix/duplicate-entry`；`fix: 阻止车辆重复入场` |
+| 文档 | `docs` | `docs/er-diagram`；`docs: 新增数据库 ER 图` |
+| 配置与维护 | `chore` | `chore/config`；`chore: 更新开发环境配置` |
+| 代码整理 | `refactor` | `refactor/fee-service`；`refactor: 简化停车计费逻辑` |
+| 测试 | `test` | `test/parking-record`；`test: 添加停车记录测试` |
 
 提交信息应说明本次完成了什么。不要使用 `update`、`修改一下`、`最终版`、`final2` 等无法理解的描述。
 
@@ -325,8 +322,8 @@ git branch -d feature/parking-space-list
 <<<<<<< HEAD
 本分支中的内容
 =======
-main 中的内容
->>>>>>> main
+dev 中的内容
+>>>>>>> dev
 ```
 
 ### 10.2 处理步骤
@@ -340,7 +337,7 @@ main 中的内容
 ```powershell
 git status
 git add path/to/resolved-file
-git commit -m "fix: resolve merge conflict"
+git commit -m "fix: 解决合并冲突"
 git push
 ```
 
@@ -350,7 +347,7 @@ git push
 
 | 情况 | 处理方式 |
 | --- | --- |
-| 误在 `main` 上修改但尚未提交 | 立即执行 `git switch -c feature/任务名`，把当前修改带到新分支后再提交 |
+| 误在 `main` 或 `dev` 上修改但尚未提交 | 立即执行 `git switch -c feature/任务名`，把当前修改带到新分支后再提交 |
 | 文件已暂存但不想提交 | 执行 `git restore --staged 文件路径`，仅取消暂存，不删除工作区修改 |
 | `push` 被拒绝 | 不要强推。先确认远程分支是否已有新提交，和组员沟通后同步或合并 |
 | `pull` 后出现冲突 | 停止继续拉取，按照冲突处理步骤解决、测试和提交 |
@@ -391,8 +388,8 @@ git push --force
 ### 13.1 开始开发前
 
 - [ ] 确认自己领取的任务和验收条件。
-- [ ] 切换到 `main` 并执行 `git pull origin main`。
-- [ ] 从最新 `main` 创建或切换到对应功能分支。
+- [ ] 切换到 `dev` 并执行 `git pull origin dev`。
+- [ ] 从最新 `dev` 创建或切换到对应任务分支。
 - [ ] 确认数据库、后端和前端基线能够运行。
 
 ### 13.2 提交前
@@ -405,13 +402,13 @@ git push --force
 ### 13.3 创建 PR 前
 
 - [ ] 功能分支已经 `push` 到 GitHub。
-- [ ] PR 目标是 `main`，来源是自己的功能分支。
+- [ ] PR 目标是 `dev`，来源是自己的任务分支。
 - [ ] 描述功能、测试结果和数据库变化。
 - [ ] 邀请至少一名组员审查。
 
 ### 13.4 合并后
 
-- [ ] 切回 `main` 并拉取最新代码。
+- [ ] 切回 `dev` 并拉取最新代码。
 - [ ] 确认合并后的项目仍能运行。
 - [ ] 删除已经合并的本地功能分支。
 - [ ] 在任务列表中标记完成，并领取下一项任务。
@@ -426,7 +423,7 @@ git push --force
 | 查看远程仓库 | `git remote -v` |
 | 切换分支 | `git switch 分支名` |
 | 创建并切换分支 | `git switch -c 分支名` |
-| 同步 `main` | `git switch main` 后执行 `git pull origin main` |
+| 同步 `dev` | `git switch dev` 后执行 `git pull origin dev` |
 | 暂存指定文件 | `git add 文件路径` |
 | 取消暂存 | `git restore --staged 文件路径` |
 | 提交 | `git commit -m "类型: 说明"` |
@@ -436,11 +433,12 @@ git push --force
 
 ## 15 推荐工作顺序
 
-1. 将当前可运行框架安全提交到 `main`。
-2. 建立 `database` 和 `docs` 目录，提交需求清单与第一版 ER 图。
-3. 创建 `smart_parking` 数据库并完成基础表结构。
-4. 按车位管理、车辆管理、入场、出场计费和统计查询依次开发。
-5. 每个功能使用独立分支和 PR，合并后持续更新 SQL 与文档。
-6. 最后进行完整流程测试、演示数据准备和课程报告整理。
+1. 全组确认需求分析，确定本课程设计的必做功能和验收标准。
+2. 建立 `database` 目录，完成 ER 图、数据字典和 PostgreSQL 建表脚本。
+3. 创建 `smart_parking` 数据库并导入统一的演示数据。
+4. 按车位管理、车辆入场、车辆离场计费和统计查询依次开发。
+5. 每项任务使用独立分支，通过 PR 合并到 `dev`，并持续更新 SQL 与文档。
+6. 完整流程验证通过后，创建 `dev -> main` 的里程碑 PR。
+7. 准备演示数据、课程报告和最终答辩。
 
-当前最重要的共同起点不是继续增加功能，而是完成第一次安全提交，让所有组员能够克隆同一份可运行项目。
+当前最重要的共同起点是确认需求分析，之后再进入 ER 图和数据库设计，避免各组员按不同理解同时开发。
