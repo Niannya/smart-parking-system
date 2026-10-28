@@ -2,7 +2,7 @@ package org.example.backend.entity;
 
 import java.math.BigDecimal;
 
-public class Instructor {
+public class Admin {
 
     private String id;
     private String name;
