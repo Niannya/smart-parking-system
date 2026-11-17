@@ -1,12 +1,9 @@
 package org.example.backend.dto;
 
 /**
- * 新增 / 修改停车区域的请求体。
- *
- * <p>修改时 lotId 与 areaCode 会被忽略：区域编号已经写进唯一约束和历史数据，
- * 允许改会让「同停车场内编号唯一」这条规则变得无法追溯，所以只允许改名称和说明。</p>
+ * 新增停车区域请求体：{@code {"lotId":1,"areaCode":"C","areaName":"C区","description":null}}。
  */
-public class ParkingAreaSaveRequest {
+public class ParkingAreaCreateRequest extends RejectUnknownJsonRequest {
 
     private Long lotId;
     private String areaCode;
