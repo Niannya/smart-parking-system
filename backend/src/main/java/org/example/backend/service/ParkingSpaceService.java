@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import org.example.backend.common.BusinessException;
+import org.example.backend.common.ErrorCode;
 import org.example.backend.dto.ParkingSpaceCreateRequest;
 import org.example.backend.dto.ParkingSpaceStatusRequest;
 import org.example.backend.dto.ParkingSpaceUpdateRequest;
@@ -59,10 +60,10 @@ public class ParkingSpaceService {
             Long requiredAreaId = RequestValues.requirePositive(areaId, "areaId 必须为正整数");
             ParkingArea area = parkingSpaceMapper.selectAreaById(requiredAreaId);
             if (area == null) {
-                throw new BusinessException(4001, "停车区域不存在");
+                throw new BusinessException(ErrorCode.AREA_NOT_FOUND, "停车区域不存在");
             }
             if (!Objects.equals(area.getParkingLotId(), requiredLotId)) {
-                throw new BusinessException(4000, "areaId 与 lotId 不属于同一个停车场");
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "areaId 与 lotId 不属于同一个停车场");
             }
         }
         return parkingSpaceMapper.selectByLot(requiredLotId, areaId, normalizedStatus);
@@ -79,28 +80,28 @@ public class ParkingSpaceService {
 
         ParkingArea area = parkingSpaceMapper.selectAreaById(areaId);
         if (area == null) {
-            throw new BusinessException(4001, "停车区域不存在");
+            throw new BusinessException(ErrorCode.AREA_NOT_FOUND, "停车区域不存在");
         }
 
         // 先锁停车场，再读区域状态：与区域启停、入场保持同一加锁顺序
         String lotStatus = parkingSpaceMapper.lockLotStatus(area.getParkingLotId());
         if (lotStatus == null) {
-            throw new BusinessException(2001, "停车场不存在");
+            throw new BusinessException(ErrorCode.LOT_NOT_FOUND, "停车场不存在");
         }
         if (!ACTIVE.equals(lotStatus)) {
-            throw new BusinessException(2005, "该停车场已停用，不能新增车位");
+            throw new BusinessException(ErrorCode.LOT_DISABLED, "该停车场已停用，不能新增车位");
         }
 
         ParkingArea currentArea = parkingSpaceMapper.selectAreaById(areaId);
         if (currentArea == null) {
-            throw new BusinessException(4001, "停车区域不存在");
+            throw new BusinessException(ErrorCode.AREA_NOT_FOUND, "停车区域不存在");
         }
         if (!ACTIVE.equals(currentArea.getStatus())) {
-            throw new BusinessException(4005, "该区域已停用，不能新增车位");
+            throw new BusinessException(ErrorCode.AREA_DISABLED, "该区域已停用，不能新增车位");
         }
 
         if (parkingSpaceMapper.countByAreaAndCode(areaId, spaceCode) > 0) {
-            throw new BusinessException(4102, "同一区域内车位编号已存在");
+            throw new BusinessException(ErrorCode.SPACE_CODE_EXISTS, "同一区域内车位编号已存在");
         }
 
         ParkingSpace space = new ParkingSpace();
@@ -110,7 +111,7 @@ public class ParkingSpaceService {
         try {
             parkingSpaceMapper.insert(space);
         } catch (DuplicateKeyException e) {
-            throw new BusinessException(4102, "同一区域内车位编号已存在");
+            throw new BusinessException(ErrorCode.SPACE_CODE_EXISTS, "同一区域内车位编号已存在");
         }
         return parkingSpaceMapper.selectById(space.getId());
     }
@@ -125,10 +126,10 @@ public class ParkingSpaceService {
 
         String lotStatus = parkingSpaceMapper.lockLotStatusBySpaceId(spaceId);
         if (lotStatus == null) {
-            throw new BusinessException(2001, "停车场不存在");
+            throw new BusinessException(ErrorCode.LOT_NOT_FOUND, "停车场不存在");
         }
         if (!FREE.equals(existing.getStatus())) {
-            throw new BusinessException(4103, "只有空闲（FREE）车位可以修改");
+            throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "只有空闲（FREE）车位可以修改");
         }
 
         String spaceCode = RequestValues.requireCode(request.getSpaceCode(), "车位编号", CODE_MAX_LENGTH);
@@ -136,15 +137,15 @@ public class ParkingSpaceService {
 
         boolean codeChanged = !spaceCode.equals(existing.getSpaceCode());
         if (codeChanged && parkingSpaceMapper.countRecordsBySpace(spaceId) > 0) {
-            throw new BusinessException(4104, "该车位已有停车历史，不能修改编号");
+            throw new BusinessException(ErrorCode.SPACE_HAS_HISTORY, "该车位已有停车历史，不能修改编号");
         }
         if (codeChanged && parkingSpaceMapper.countByAreaAndCode(existing.getAreaId(), spaceCode) > 0) {
-            throw new BusinessException(4102, "同一区域内车位编号已存在");
+            throw new BusinessException(ErrorCode.SPACE_CODE_EXISTS, "同一区域内车位编号已存在");
         }
 
         int updated = parkingSpaceMapper.updateInfo(spaceId, spaceCode, description);
         if (updated != 1) {
-            throw new BusinessException(4103, "车位状态已变化，请刷新后重试");
+            throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "车位状态已变化，请刷新后重试");
         }
         return parkingSpaceMapper.selectById(spaceId);
     }
@@ -160,10 +161,10 @@ public class ParkingSpaceService {
 
         String lotStatus = parkingSpaceMapper.lockLotStatusBySpaceId(spaceId);
         if (lotStatus == null) {
-            throw new BusinessException(2001, "停车场不存在");
+            throw new BusinessException(ErrorCode.LOT_NOT_FOUND, "停车场不存在");
         }
         if (OCCUPIED.equals(existing.getStatus())) {
-            throw new BusinessException(4103, "占用中的车位不能停用或启用");
+            throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "占用中的车位不能停用或启用");
         }
         if (targetStatus.equals(existing.getStatus())) {
             return existing;
@@ -172,26 +173,26 @@ public class ParkingSpaceService {
         if (DISABLED.equals(targetStatus)) {
             int updated = parkingSpaceMapper.updateStatus(spaceId, DISABLED, FREE);
             if (updated != 1) {
-                throw new BusinessException(4103, "车位状态已变化，请刷新后重试");
+                throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "车位状态已变化，请刷新后重试");
             }
             return parkingSpaceMapper.selectById(spaceId);
         }
 
         // 启用：停车场与区域都必须处于启用状态
         if (!ACTIVE.equals(lotStatus)) {
-            throw new BusinessException(2005, "该停车场已停用，不能启用车位");
+            throw new BusinessException(ErrorCode.LOT_DISABLED, "该停车场已停用，不能启用车位");
         }
         ParkingArea area = parkingSpaceMapper.selectAreaById(existing.getAreaId());
         if (area == null) {
-            throw new BusinessException(4001, "停车区域不存在");
+            throw new BusinessException(ErrorCode.AREA_NOT_FOUND, "停车区域不存在");
         }
         if (!ACTIVE.equals(area.getStatus())) {
-            throw new BusinessException(4005, "该区域已停用，不能启用该车位");
+            throw new BusinessException(ErrorCode.AREA_DISABLED, "该区域已停用，不能启用该车位");
         }
 
         int updated = parkingSpaceMapper.updateStatus(spaceId, FREE, DISABLED);
         if (updated != 1) {
-            throw new BusinessException(4103, "车位状态已变化，请刷新后重试");
+            throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "车位状态已变化，请刷新后重试");
         }
         return parkingSpaceMapper.selectById(spaceId);
     }
@@ -205,30 +206,30 @@ public class ParkingSpaceService {
         // 删除与入场、区域/车位启停保持同一加锁顺序：先锁所属停车场，避免删除与入场互相穿插
         String lotStatus = parkingSpaceMapper.lockLotStatusBySpaceId(spaceId);
         if (lotStatus == null) {
-            throw new BusinessException(2001, "停车场不存在");
+            throw new BusinessException(ErrorCode.LOT_NOT_FOUND, "停车场不存在");
         }
 
         if (!FREE.equals(existing.getStatus())) {
-            throw new BusinessException(4103, "只有空闲（FREE）车位可以删除");
+            throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "只有空闲（FREE）车位可以删除");
         }
         if (parkingSpaceMapper.countRecordsBySpace(spaceId) > 0) {
-            throw new BusinessException(4104, "该车位已有停车历史，不能删除");
+            throw new BusinessException(ErrorCode.SPACE_HAS_HISTORY, "该车位已有停车历史，不能删除");
         }
 
         try {
             int deleted = parkingSpaceMapper.deleteById(spaceId);
             if (deleted != 1) {
-                throw new BusinessException(4103, "车位状态已变化，请刷新后重试");
+                throw new BusinessException(ErrorCode.SPACE_OCCUPIED, "车位状态已变化，请刷新后重试");
             }
         } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(4104, "该车位仍被停车记录引用，不能删除");
+            throw new BusinessException(ErrorCode.SPACE_HAS_HISTORY, "该车位仍被停车记录引用，不能删除");
         }
     }
 
     private ParkingSpace requireSpace(Long id) {
         ParkingSpace space = parkingSpaceMapper.selectById(id);
         if (space == null) {
-            throw new BusinessException(4101, "车位不存在");
+            throw new BusinessException(ErrorCode.SPACE_NOT_FOUND, "车位不存在");
         }
         return space;
     }
@@ -236,7 +237,7 @@ public class ParkingSpaceService {
     private CurrentUserView requireAdmin() {
         CurrentUserView user = currentUserProvider.currentUser();
         if (!user.isAdmin()) {
-            throw new BusinessException(1004, "当前账号无权执行该操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "当前账号无权执行该操作");
         }
         return user;
     }
