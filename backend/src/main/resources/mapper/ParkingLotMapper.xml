@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.backend.mapper.ParkingLotMapper">
+    <resultMap id="lotView" type="org.example.backend.dto.ParkingLotDto$View">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="lot_code" javaType="java.lang.String"/>
+            <arg column="lot_name" javaType="java.lang.String"/>
+            <arg column="address" javaType="java.lang.String"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.OffsetDateTime"/>
+            <arg column="updated_at" javaType="java.time.OffsetDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="lotOption" type="org.example.backend.dto.ParkingLotDto$Option">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="lot_code" javaType="java.lang.String"/>
+            <arg column="lot_name" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="columns">id, lot_code, lot_name, address, description, status, created_at, updated_at</sql>
+
+    <select id="selectLots" resultMap="lotView">
+        SELECT <include refid="columns"/>
+        FROM parking_lot
+        <if test="status != null">WHERE status = #{status}</if>
+        ORDER BY lot_code
+    </select>
+
+    <select id="selectActiveOptions" resultMap="lotOption">
+        SELECT id, lot_code, lot_name
+        FROM parking_lot
+        WHERE status = 'ACTIVE'
+        ORDER BY lot_code
+    </select>
+
+    <select id="selectById" resultMap="lotView">
+        SELECT <include refid="columns"/>
+        FROM parking_lot
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="lotView">
+        SELECT <include refid="columns"/>
+        FROM parking_lot
+        WHERE lot_code = #{lotCode}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO parking_lot (lot_code, lot_name, address, description)
+        VALUES (#{lotCode}, #{lotName}, #{address}, #{description,jdbcType=VARCHAR})
+        ON CONFLICT ON CONSTRAINT uk_parking_lot_code DO NOTHING
+    </insert>
+
+    <update id="updateInfo">
+        UPDATE parking_lot
+        SET lot_name = #{lotName}, address = #{address},
+            description = #{description,jdbcType=VARCHAR}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE parking_lot
+        SET status = #{status}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status != #{status}
+    </update>
+
+    <select id="hasActiveRecords" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM parking_record WHERE parking_lot_id = #{id} AND status = 'PARKING'
+        )
+    </select>
+
+    <select id="hasDependencies" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM parking_area WHERE parking_lot_id = #{id})
+            OR EXISTS (SELECT 1 FROM fee_rule WHERE parking_lot_id = #{id})
+            OR EXISTS (SELECT 1 FROM parking_record WHERE parking_lot_id = #{id})
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM parking_lot WHERE id = #{id}
+    </delete>
+</mapper>
