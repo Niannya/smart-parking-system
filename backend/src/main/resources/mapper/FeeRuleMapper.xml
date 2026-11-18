@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.FeeRuleMapper">
+
+    <resultMap id="feeRuleMap" type="org.example.backend.dto.feerule.FeeRule">
+        <id column="id" property="id"/>
+        <result column="parking_lot_id" property="parkingLotId"/>
+        <result column="rule_name" property="ruleName"/>
+        <result column="free_minutes" property="freeMinutes"/>
+        <result column="billing_unit_minutes" property="billingUnitMinutes"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="max_fee_per24h" property="maxFeePer24h"/>
+        <result column="is_active" property="isActive"/>
+        <result column="effective_from" property="effectiveFrom"/>
+        <result column="effective_to" property="effectiveTo"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="org.example.backend.dto.feerule.FeeRule"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO fee_rule (parking_lot_id, rule_name, free_minutes, billing_unit_minutes,
+                              unit_price, max_fee_per24h, is_active, effective_from, effective_to, created_by)
+        VALUES (#{parkingLotId}, #{ruleName}, #{freeMinutes}, #{billingUnitMinutes},
+                #{unitPrice}, #{maxFeePer24h}, #{isActive}, #{effectiveFrom}, #{effectiveTo}, #{createdBy})
+    </insert>
+
+    <select id="selectById" resultMap="feeRuleMap">
+        SELECT * FROM fee_rule WHERE id = #{id}
+    </select>
+
+    <select id="selectByLot" resultMap="feeRuleMap">
+        SELECT * FROM fee_rule
+        WHERE parking_lot_id = #{lotId}
+        ORDER BY created_at DESC, id DESC
+    </select>
+
+    <select id="selectActive" resultMap="feeRuleMap">
+        SELECT * FROM fee_rule
+        WHERE parking_lot_id = #{lotId} AND is_active = true
+    </select>
+
+    <update id="deactivateActive">
+        UPDATE fee_rule
+        SET is_active = false, effective_to = #{now}
+        WHERE parking_lot_id = #{lotId} AND is_active = true
+    </update>
+
+</mapper>

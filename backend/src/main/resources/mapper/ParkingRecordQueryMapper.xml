@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.ParkingRecordQueryMapper">
+
+    <sql id="recordColumns">
+        r.id, r.record_no, r.parking_lot_id, l.lot_name, r.vehicle_id, r.license_plate,
+        r.parking_space_id, a.area_code, s.space_code, r.fee_rule_id,
+        r.entry_time, r.exit_time, r.status, r.abnormal_reason,
+        p.payment_no, p.amount_due, p.amount_paid, p.payment_method, p.payment_time
+    </sql>
+
+    <sql id="recordFrom">
+        FROM parking_record r
+        JOIN parking_lot l ON l.id = r.parking_lot_id
+        JOIN parking_space s ON s.id = r.parking_space_id
+        JOIN parking_area a ON a.id = s.area_id
+        LEFT JOIN payment_record p ON p.parking_record_id = r.id
+    </sql>
+
+    <resultMap id="recordRowMap" type="org.example.backend.dto.record.RecordRow">
+        <id column="id" property="id"/>
+        <result column="record_no" property="recordNo"/>
+        <result column="parking_lot_id" property="parkingLotId"/>
+        <result column="lot_name" property="lotName"/>
+        <result column="vehicle_id" property="vehicleId"/>
+        <result column="license_plate" property="licensePlate"/>
+        <result column="parking_space_id" property="parkingSpaceId"/>
+        <result column="area_code" property="areaCode"/>
+        <result column="space_code" property="spaceCode"/>
+        <result column="fee_rule_id" property="feeRuleId"/>
+        <result column="entry_time" property="entryTime"/>
+        <result column="exit_time" property="exitTime"/>
+        <result column="status" property="status"/>
+        <result column="abnormal_reason" property="abnormalReason"/>
+        <result column="payment_no" property="paymentNo"/>
+        <result column="amount_due" property="amountDue"/>
+        <result column="amount_paid" property="amountPaid"/>
+        <result column="payment_method" property="paymentMethod"/>
+        <result column="payment_time" property="paymentTime"/>
+    </resultMap>
+
+    <select id="selectForAdmin" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        <where>
+            <if test="lotId != null">
+                AND r.parking_lot_id = #{lotId}
+            </if>
+            <if test="licensePlate != null and licensePlate != ''">
+                AND r.license_plate = #{licensePlate}
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="spaceId != null">
+                AND r.parking_space_id = #{spaceId}
+            </if>
+            <if test="entryFrom != null">
+                AND r.entry_time &gt;= #{entryFrom}
+            </if>
+            <if test="entryTo != null">
+                AND r.entry_time &lt; #{entryTo}
+            </if>
+        </where>
+        ORDER BY r.entry_time DESC, r.id DESC
+    </select>
+
+    <select id="selectByIdForAdmin" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="selectForOwner" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        JOIN vehicle v ON v.id = r.vehicle_id AND v.owner_user_id = #{ownerUserId}
+        <where>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+        </where>
+        ORDER BY r.entry_time DESC, r.id DESC
+    </select>
+
+    <select id="selectByIdForOwner" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        JOIN vehicle v ON v.id = r.vehicle_id AND v.owner_user_id = #{ownerUserId}
+        WHERE r.id = #{id}
+    </select>
+
+</mapper>

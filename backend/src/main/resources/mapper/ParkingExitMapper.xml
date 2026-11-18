@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.ParkingExitMapper">
+
+    <sql id="recordColumns">
+        r.id, r.record_no, r.parking_lot_id, r.parking_space_id, r.fee_rule_id, r.vehicle_id,
+        r.license_plate, r.entry_time, r.status,
+        a.area_code, s.space_code
+    </sql>
+
+    <sql id="recordFrom">
+        FROM parking_record r
+        JOIN parking_space s ON s.id = r.parking_space_id
+        JOIN parking_area a ON a.id = s.area_id
+    </sql>
+
+    <resultMap id="recordRowMap" type="org.example.backend.dto.exit.ParkingRecordRow">
+        <id column="id" property="id"/>
+        <result column="record_no" property="recordNo"/>
+        <result column="parking_lot_id" property="parkingLotId"/>
+        <result column="parking_space_id" property="parkingSpaceId"/>
+        <result column="fee_rule_id" property="feeRuleId"/>
+        <result column="vehicle_id" property="vehicleId"/>
+        <result column="license_plate" property="licensePlate"/>
+        <result column="entry_time" property="entryTime"/>
+        <result column="status" property="status"/>
+        <result column="area_code" property="areaCode"/>
+        <result column="space_code" property="spaceCode"/>
+    </resultMap>
+
+    <select id="selectActiveByPlate" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        WHERE r.status = 'PARKING' AND r.license_plate = #{licensePlate}
+    </select>
+
+    <select id="selectActiveByRecordNo" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        WHERE r.status = 'PARKING' AND r.record_no = #{recordNo}
+    </select>
+
+    <select id="selectById" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="selectByIdForUpdate" resultMap="recordRowMap">
+        SELECT <include refid="recordColumns"/>
+        <include refid="recordFrom"/>
+        WHERE r.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <insert id="insertPayment" parameterType="org.example.backend.dto.exit.PaymentInsert">
+        INSERT INTO payment_record (payment_no, parking_record_id, amount_due, amount_paid,
+                                    payment_method, payment_time, remark, handled_by)
+        VALUES (#{paymentNo}, #{parkingRecordId}, #{amountDue}, #{amountPaid},
+                #{paymentMethod}, #{paymentTime}, #{remark}, #{handledBy})
+    </insert>
+
+    <update id="completeRecord">
+        UPDATE parking_record
+        SET status = 'COMPLETED', exit_time = #{exitTime}, exit_admin_id = #{exitAdminId},
+            updated_at = now()
+        WHERE id = #{id} AND status = 'PARKING'
+    </update>
+
+    <update id="releaseSpace">
+        UPDATE parking_space
+        SET status = 'FREE', updated_at = now()
+        WHERE id = #{spaceId} AND status = 'OCCUPIED'
+    </update>
+
+    <update id="markAbnormal">
+        UPDATE parking_record
+        SET status = 'ABNORMAL', abnormal_reason = #{reason}, exit_time = #{exitTime},
+            exit_admin_id = #{exitAdminId}, updated_at = now()
+        WHERE id = #{id} AND status = 'PARKING'
+    </update>
+
+    <select id="paymentNoExists" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM payment_record WHERE payment_no = #{paymentNo})
+    </select>
+
+    <select id="countPaymentsByRecord" resultType="int">
+        SELECT COUNT(1) FROM payment_record WHERE parking_record_id = #{recordId}
+    </select>
+
+</mapper>
