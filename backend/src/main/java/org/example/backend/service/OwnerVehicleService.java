@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import org.example.backend.common.BusinessException;
+import org.example.backend.common.ErrorCode;
 import org.example.backend.dto.OwnerVehicleCreateRequest;
 import org.example.backend.dto.VehicleStatusRequest;
 import org.example.backend.entity.Vehicle;
@@ -55,10 +56,10 @@ public class OwnerVehicleService {
 
         String plate = PlateNormalizer.normalize(request.getLicensePlate());
         if (plate.isEmpty()) {
-            throw new BusinessException(4204, "车牌不能为空");
+            throw new BusinessException(ErrorCode.INVALID_LICENSE_PLATE, "车牌不能为空");
         }
         if (!PlateNormalizer.isValid(plate)) {
-            throw new BusinessException(4204, "车牌格式不正确，示例：京A12345");
+            throw new BusinessException(ErrorCode.INVALID_LICENSE_PLATE, "车牌格式不正确，示例：京A12345");
         }
 
         Vehicle vehicle = new Vehicle();
@@ -68,7 +69,7 @@ public class OwnerVehicleService {
             vehicleMapper.insert(vehicle);
         } catch (DuplicateKeyException e) {
             // uk_vehicle_license_plate 是全表唯一：已停用的车牌也不能被第二个账号绑定
-            throw new BusinessException(4202, "该车牌已被绑定");
+            throw new BusinessException(ErrorCode.VEHICLE_PLATE_EXISTS, "该车牌已被绑定");
         }
         return vehicleMapper.selectById(vehicle.getId());
     }
@@ -83,10 +84,10 @@ public class OwnerVehicleService {
 
         Vehicle existing = vehicleMapper.selectById(vehicleId);
         if (existing == null) {
-            throw new BusinessException(4201, "车辆不存在");
+            throw new BusinessException(ErrorCode.VEHICLE_NOT_FOUND, "车辆不存在");
         }
         if (!Objects.equals(existing.getOwnerUserId(), user.id())) {
-            throw new BusinessException(4203, "不是本人车辆");
+            throw new BusinessException(ErrorCode.VEHICLE_NOT_OWNED, "不是本人车辆");
         }
         if (targetStatus.equals(existing.getStatus())) {
             return existing;
@@ -94,7 +95,7 @@ public class OwnerVehicleService {
 
         int updated = vehicleMapper.updateStatus(vehicleId, user.id(), targetStatus);
         if (updated != 1) {
-            throw new BusinessException(4203, "不是本人车辆");
+            throw new BusinessException(ErrorCode.VEHICLE_NOT_OWNED, "不是本人车辆");
         }
         return vehicleMapper.selectById(vehicleId);
     }
@@ -102,7 +103,7 @@ public class OwnerVehicleService {
     private CurrentUserView requireOwner() {
         CurrentUserView user = currentUserProvider.currentUser();
         if (!user.isOwner()) {
-            throw new BusinessException(1004, "当前账号无权执行该操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "当前账号无权执行该操作");
         }
         return user;
     }
