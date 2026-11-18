@@ -1,0 +1,21 @@
+# 构建产物
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# 本地工具链（PostgreSQL/Maven 便携版，3139 个文件，不应入库）
+tools/
+
+# IDE/系统
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 日志与临时文件
+*.log
+*.tmp
+
+# 工作区记忆
+.workbuddy/
