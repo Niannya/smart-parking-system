@@ -2,6 +2,7 @@ package org.example.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import org.example.backend.common.BusinessException;
+import org.example.backend.common.ErrorCode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,7 +26,7 @@ public abstract class RejectUnknownJsonRequest {
     /** 每个 Service 的入口第一步调用。 */
     public void rejectUnknownFields() {
         if (!unknownFields.isEmpty()) {
-            throw new BusinessException(4000, "请求包含不支持的字段：" + String.join("、", unknownFields.keySet()));
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "请求包含不支持的字段：" + String.join("、", unknownFields.keySet()));
         }
     }
 }

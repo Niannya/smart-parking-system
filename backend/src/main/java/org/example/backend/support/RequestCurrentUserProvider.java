@@ -1,6 +1,6 @@
 package org.example.backend.support;
 
-import org.example.backend.common.BusinessException;
+import org.example.backend.common.CurrentUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,11 +11,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import java.util.Locale;
 
 /**
- * 默认的当前用户提供者：读取鉴权层写入的请求属性。
+ * 默认的当前用户提供者：优先读取鉴权层写入的请求属性，其次读取成员 1 的 Spring Security 认证上下文。
  *
- * <p>本类不解析 Cookie、不信任任何请求头或请求体；没有认证结果时一律返回 1003 未登录。
- * 成员 1 的 Spring Security 合并后，由认证过滤器写入
- * {@link #ATTRIBUTE_NAME} 对应的 {@link CurrentUserView} 即可，无需改动成员 2 的业务代码。</p>
+ * <p>本类不解析 Cookie、不信任任何请求头或请求体；没有认证结果时一律返回 1003 未登录。</p>
  *
  * <p>本地联调开关：{@code parking.dev.current-user-id} 与 {@code parking.dev.current-user-role}
  * 仅用于没有鉴权底座时跑通页面，默认关闭（id=0）。生产/验收环境不得设置。</p>
@@ -54,7 +52,9 @@ public class RequestCurrentUserProvider implements CurrentUserProvider {
         if (devUserId > 0 && isKnownRole(devRole)) {
             return new CurrentUserView(devUserId, devRole);
         }
-        throw new BusinessException(1003, "未登录或登录已失效，请重新登录");
+        // 成员 1 的 Spring Security 已合并：优先从认证上下文取真实登录用户；
+        // 未登录时 CurrentUser 会抛 1003，保持与统一异常处理一致。
+        return new CurrentUserView(CurrentUser.id(), CurrentUser.role());
     }
 
     private boolean isKnownRole(String role) {

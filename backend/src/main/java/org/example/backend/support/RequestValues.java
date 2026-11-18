@@ -1,6 +1,7 @@
 package org.example.backend.support;
 
 import org.example.backend.common.BusinessException;
+import org.example.backend.common.ErrorCode;
 
 import java.util.Locale;
 
@@ -17,7 +18,7 @@ public final class RequestValues {
 
     public static Long requirePositive(Long value, String message) {
         if (value == null || value <= 0) {
-            throw new BusinessException(4000, message);
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, message);
         }
         return value;
     }
@@ -26,10 +27,10 @@ public final class RequestValues {
     public static String requireCode(String value, String fieldName, int maxLength) {
         String normalized = TextNormalizer.normalizeCode(value);
         if (normalized.isEmpty()) {
-            throw new BusinessException(4000, fieldName + "不能为空");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, fieldName + "不能为空");
         }
         if (normalized.length() > maxLength) {
-            throw new BusinessException(4000, fieldName + "不能超过 " + maxLength + " 个字符");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, fieldName + "不能超过 " + maxLength + " 个字符");
         }
         return normalized;
     }
@@ -38,10 +39,10 @@ public final class RequestValues {
     public static String requireText(String value, String fieldName, int maxLength) {
         String normalized = TextNormalizer.normalizeText(value);
         if (normalized.isEmpty()) {
-            throw new BusinessException(4000, fieldName + "不能为空");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, fieldName + "不能为空");
         }
         if (normalized.length() > maxLength) {
-            throw new BusinessException(4000, fieldName + "不能超过 " + maxLength + " 个字符");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, fieldName + "不能超过 " + maxLength + " 个字符");
         }
         return normalized;
     }
@@ -56,7 +57,7 @@ public final class RequestValues {
             return null;
         }
         if (normalized.length() > maxLength) {
-            throw new BusinessException(4000, "说明不能超过 " + maxLength + " 个字符");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "说明不能超过 " + maxLength + " 个字符");
         }
         return normalized;
     }
@@ -73,11 +74,11 @@ public final class RequestValues {
             if (nullable) {
                 return null;
             }
-            throw new BusinessException(4000, "状态不能为空");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "状态不能为空");
         }
         // 契约第 1 节：字段省略表示不过滤，空字符串属于非法过滤值
         if (status.isBlank()) {
-            throw new BusinessException(4000, "状态不能为空字符串");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "状态不能为空字符串");
         }
         String normalized = status.trim().toUpperCase(Locale.ROOT);
         for (String candidate : allowed) {
@@ -85,6 +86,6 @@ public final class RequestValues {
                 return normalized;
             }
         }
-        throw new BusinessException(4000, "状态只能是 " + String.join(" 或 ", allowed));
+        throw new BusinessException(ErrorCode.INVALID_REQUEST, "状态只能是 " + String.join(" 或 ", allowed));
     }
 }
