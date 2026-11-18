@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.ParkingLotMapper">
+
+    <select id="lockById" resultType="int">
+        SELECT 1 FROM parking_lot WHERE id = #{lotId} FOR UPDATE
+    </select>
+
+    <select id="selectStatusById" resultType="string">
+        SELECT status FROM parking_lot WHERE id = #{lotId}
+    </select>
+
+    <select id="selectOptions" resultType="org.example.backend.dto.lot.ParkingLotOption">
+        SELECT id, lot_code AS lotCode, lot_name AS lotName
+        FROM parking_lot
+        WHERE status = 'ACTIVE'
+        ORDER BY lot_code ASC
+    </select>
+
+</mapper>
