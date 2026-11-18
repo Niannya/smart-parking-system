@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.backend.mapper.ParkingAreaMapper">
+
+    <!-- space_count 是页面展示用的车位数，不是表字段，用子查询带出来 -->
+    <select id="selectByLot" resultType="org.example.backend.entity.ParkingArea">
+        SELECT a.id,
+               a.parking_lot_id,
+               a.area_code,
+               a.area_name,
+               a.description,
+               a.status,
+               a.created_at,
+               a.updated_at,
+               (SELECT COUNT(*) FROM parking_space s WHERE s.area_id = a.id) AS space_count
+        FROM parking_area a
+        WHERE a.parking_lot_id = #{lotId}
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+        ORDER BY a.area_code
+    </select>
+
+    <select id="selectById" resultType="org.example.backend.entity.ParkingArea">
+        SELECT a.id,
+               a.parking_lot_id,
+               a.area_code,
+               a.area_name,
+               a.description,
+               a.status,
+               a.created_at,
+               a.updated_at,
+               (SELECT COUNT(*) FROM parking_space s WHERE s.area_id = a.id) AS space_count
+        FROM parking_area a
+        WHERE a.id = #{id}
+    </select>
+
+    <select id="countByLotAndCode" resultType="int">
+        SELECT COUNT(*)
+        FROM parking_area
+        WHERE parking_lot_id = #{lotId}
+          AND area_code = #{areaCode}
+    </select>
+
+    <insert id="insert"
+            parameterType="org.example.backend.entity.ParkingArea"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="id">
+        INSERT INTO parking_area (parking_lot_id, area_code, area_name, description, status)
+        VALUES (#{parkingLotId}, #{areaCode}, #{areaName}, #{description}, 'ACTIVE')
+    </insert>
+
+    <update id="updateInfo" parameterType="org.example.backend.entity.ParkingArea">
+        UPDATE parking_area
+        SET area_name   = #{areaName},
+            description = #{description},
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE parking_area
+        SET status     = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM parking_area
+        WHERE id = #{id}
+    </delete>
+
+    <select id="countSpacesByArea" resultType="int">
+        SELECT COUNT(*)
+        FROM parking_space
+        WHERE area_id = #{areaId}
+    </select>
+
+    <select id="countParkingRecordsByArea" resultType="int">
+        SELECT COUNT(*)
+        FROM parking_record r
+                 JOIN parking_space s ON s.id = r.parking_space_id
+        WHERE s.area_id = #{areaId}
+          AND r.status = 'PARKING'
+    </select>
+
+    <select id="selectLotStatus" resultType="java.lang.String">
+        SELECT status
+        FROM parking_lot
+        WHERE id = #{lotId}
+    </select>
+
+    <select id="selectActiveLots" resultType="org.example.backend.dto.ParkingLotOption">
+        SELECT id, lot_code, lot_name
+        FROM parking_lot
+        WHERE status = 'ACTIVE'
+        ORDER BY lot_code
+    </select>
+
+</mapper>
