@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.ParkingEntryMapper">
+
+    <insert id="insert" parameterType="org.example.backend.dto.entry.ParkingRecordInsert"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO parking_record (record_no, parking_lot_id, parking_space_id, fee_rule_id, vehicle_id,
+                                    license_plate, entry_admin_id, entry_time, status)
+        VALUES (#{recordNo}, #{parkingLotId}, #{parkingSpaceId}, #{feeRuleId}, #{vehicleId},
+                #{licensePlate}, #{entryAdminId}, #{entryTime}, 'PARKING')
+    </insert>
+
+    <select id="countActiveByPlate" resultType="int">
+        SELECT COUNT(1) FROM parking_record
+        WHERE license_plate = #{licensePlate} AND status = 'PARKING'
+    </select>
+
+    <select id="recordNoExists" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM parking_record WHERE record_no = #{recordNo})
+    </select>
+
+</mapper>

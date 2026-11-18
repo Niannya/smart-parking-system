@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.ParkingAreaMapper">
+
+    <resultMap id="areaMap" type="org.example.backend.dto.area.ParkingArea">
+        <id column="id" property="id"/>
+        <result column="parking_lot_id" property="parkingLotId"/>
+        <result column="area_code" property="areaCode"/>
+        <result column="area_name" property="areaName"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByLot" resultMap="areaMap">
+        SELECT * FROM parking_area
+        WHERE parking_lot_id = #{lotId}
+        ORDER BY area_code
+    </select>
+
+    <insert id="insert" parameterType="org.example.backend.dto.area.ParkingArea"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO parking_area (parking_lot_id, area_code, area_name, description, status)
+        VALUES (#{parkingLotId}, #{areaCode}, #{areaName}, #{description}, 'ACTIVE')
+    </insert>
+
+    <select id="countByLotAndCode" resultType="int">
+        SELECT COUNT(1) FROM parking_area
+        WHERE parking_lot_id = #{lotId} AND area_code = #{areaCode}
+    </select>
+
+    <select id="selectLotIdByArea" resultType="long">
+        SELECT parking_lot_id FROM parking_area WHERE id = #{areaId}
+    </select>
+
+    <select id="selectStatusById" resultType="string">
+        SELECT status FROM parking_area WHERE id = #{areaId}
+    </select>
+
+</mapper>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.ParkingSpaceMapper">
+
+    <sql id="spaceColumns">
+        s.id, s.area_id, a.parking_lot_id, a.area_code, s.space_code,
+        s.description, s.status, s.created_at, s.updated_at
+    </sql>
+
+    <sql id="spaceFrom">
+        FROM parking_space s
+        JOIN parking_area a ON a.id = s.area_id
+    </sql>
+
+    <resultMap id="spaceMap" type="org.example.backend.dto.space.ParkingSpace">
+        <id column="id" property="id"/>
+        <result column="area_id" property="areaId"/>
+        <result column="parking_lot_id" property="parkingLotId"/>
+        <result column="area_code" property="areaCode"/>
+        <result column="space_code" property="spaceCode"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByFilter" resultMap="spaceMap">
+        SELECT <include refid="spaceColumns"/>
+        <include refid="spaceFrom"/>
+        <where>
+            AND a.parking_lot_id = #{lotId}
+            <if test="areaId != null">
+                AND s.area_id = #{areaId}
+            </if>
+            <if test="status != null and status != ''">
+                AND s.status = #{status}
+            </if>
+        </where>
+        ORDER BY a.area_code, s.space_code, s.id
+    </select>
+
+    <insert id="insert" parameterType="org.example.backend.dto.space.ParkingSpace"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO parking_space (area_id, space_code, description, status)
+        VALUES (#{areaId}, #{spaceCode}, #{description}, 'FREE')
+    </insert>
+
+    <select id="selectFreeForAllocationForUpdate" resultMap="spaceMap">
+        SELECT <include refid="spaceColumns"/>
+        <include refid="spaceFrom"/>
+        WHERE a.parking_lot_id = #{lotId}
+          AND a.status = 'ACTIVE'
+          AND s.status = 'FREE'
+        ORDER BY a.area_code, s.space_code, s.id
+        LIMIT 1
+        FOR UPDATE OF s
+    </select>
+
+    <update id="occupyIfFree">
+        UPDATE parking_space
+        SET status = 'OCCUPIED', updated_at = now()
+        WHERE id = #{id} AND status = 'FREE'
+    </update>
+
+</mapper>

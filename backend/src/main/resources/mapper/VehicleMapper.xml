@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.backend.mapper.VehicleMapper">
+
+    <resultMap id="vehicleMap" type="org.example.backend.dto.vehicle.Vehicle">
+        <id column="id" property="id"/>
+        <result column="owner_user_id" property="ownerUserId"/>
+        <result column="license_plate" property="licensePlate"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByOwner" resultMap="vehicleMap">
+        SELECT * FROM vehicle
+        WHERE owner_user_id = #{ownerUserId}
+        ORDER BY license_plate
+    </select>
+
+    <insert id="insert" parameterType="org.example.backend.dto.vehicle.Vehicle"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO vehicle (owner_user_id, license_plate, status)
+        VALUES (#{ownerUserId}, #{licensePlate}, 'ACTIVE')
+    </insert>
+
+    <select id="selectActiveByPlate" resultMap="vehicleMap">
+        SELECT * FROM vehicle
+        WHERE license_plate = #{licensePlate} AND status = 'ACTIVE'
+    </select>
+
+    <select id="selectByIdAndOwner" resultMap="vehicleMap">
+        SELECT * FROM vehicle
+        WHERE id = #{id} AND owner_user_id = #{ownerUserId}
+    </select>
+
+    <select id="selectById" resultMap="vehicleMap">
+        SELECT * FROM vehicle
+        WHERE id = #{id}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE vehicle
+        SET status = #{status}, updated_at = now()
+        WHERE id = #{id} AND owner_user_id = #{ownerUserId}
+    </update>
+
+</mapper>
