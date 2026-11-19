@@ -1,6 +1,7 @@
 package org.example.backend.integration;
 
 import org.example.backend.common.BusinessException;
+import org.example.backend.common.ErrorCode;
 import org.example.backend.dto.ParkingEntryRequest;
 import org.example.backend.dto.ParkingEntryResult;
 import org.example.backend.service.ParkingEntryDependency;
@@ -268,10 +269,10 @@ class ParkingEntryPostgresIT {
                             "SELECT status FROM parking_lot WHERE id = ? FOR UPDATE",
                             (rs, rowNum) -> rs.getString(1), lotId);
                     if (statuses.isEmpty()) {
-                        throw new BusinessException(2001, "停车场不存在");
+                        throw new BusinessException(ErrorCode.LOT_NOT_FOUND, "停车场不存在");
                     }
                     if (!"ACTIVE".equals(statuses.get(0))) {
-                        throw new BusinessException(2005, "该停车场已停用，不能办理入场");
+                        throw new BusinessException(ErrorCode.LOT_DISABLED, "该停车场已停用，不能办理入场");
                     }
                 }
 

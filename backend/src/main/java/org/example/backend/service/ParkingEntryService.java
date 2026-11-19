@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import org.example.backend.common.BusinessException;
+import org.example.backend.common.ErrorCode;
 import org.example.backend.dto.ParkingEntryRequest;
 import org.example.backend.dto.ParkingEntryResult;
 import org.example.backend.dto.ParkingSpaceAllocation;
@@ -35,9 +36,9 @@ import java.util.UUID;
  *   <li>启用的绑定车辆写 vehicleId，停用或未绑定写 null，车牌快照始终保存。</li>
  * </ol>
  *
- * <p>外部依赖未合并时，{@link PendingParkingEntryDependency} 会抛出明确的
- * {@link IllegalStateException}，入场接口返回 500 而不是伪装成功；替换方式见
- * {@code docs/成员2_交付与合并操作说明.md}。</p>
+ * <p>成员 1 的 Guard 已通过 {@link ParkingEntryDependencyAdapter} 接入；成员 3 的
+ * {@code FeeRuleQuery} 尚未合并时，取规则方法会抛出明确的 500 业务错误，
+ * 入场接口不会伪装成功。替换方式见 {@code docs/成员2_交付与合并操作说明.md}。</p>
  */
 @Service
 public class ParkingEntryService {
@@ -65,10 +66,10 @@ public class ParkingEntryService {
         // 1. 车牌校验先于权限与数据库访问（契约校验顺序）
         String plate = PlateNormalizer.normalize(request.getLicensePlate());
         if (plate.isEmpty()) {
-            throw new BusinessException(4204, "车牌不能为空");
+            throw new BusinessException(ErrorCode.INVALID_LICENSE_PLATE, "车牌不能为空");
         }
         if (!PlateNormalizer.isValid(plate)) {
-            throw new BusinessException(4204, "车牌格式不正确，示例：京A12345");
+            throw new BusinessException(ErrorCode.INVALID_LICENSE_PLATE, "车牌格式不正确，示例：京A12345");
         }
 
         CurrentUserView admin = requireAdmin();
@@ -79,24 +80,24 @@ public class ParkingEntryService {
 
         // 3. 全局同牌检查（跨场也不允许同牌同时在场）
         if (parkingEntryMapper.countActiveByPlate(plate) > 0) {
-            throw new BusinessException(4301, "该车牌已在场，请先办理离场");
+            throw new BusinessException(ErrorCode.PLATE_ALREADY_PARKING, "该车牌已在场，请先办理离场");
         }
 
         // 4. 成员 3 的规则查询只读返回当前生效规则 ID；无规则不允许入场
         Long feeRuleId = parkingEntryDependency.findActiveFeeRuleId(lotId);
         if (feeRuleId == null) {
-            throw new BusinessException(4303, "当前停车场无生效收费规则");
+            throw new BusinessException(ErrorCode.NO_ACTIVE_FEE_RULE, "当前停车场无生效收费规则");
         }
 
         // 5. 固定排序 + 行锁选一个启用区域的 FREE 车位
         ParkingSpaceAllocation space = parkingEntryMapper.selectFreeSpaceForUpdate(lotId);
         if (space == null) {
-            throw new BusinessException(4302, "当前停车场无空闲车位");
+            throw new BusinessException(ErrorCode.NO_FREE_SPACE, "当前停车场无空闲车位");
         }
 
         // 6. 条件占位；拿不到说明被并发请求抢先，整个事务回滚
         if (parkingEntryMapper.occupySpace(space.getId()) != 1) {
-            throw new BusinessException(4304, "入场并发冲突，请重新提交");
+            throw new BusinessException(ErrorCode.ENTRY_CONFLICT, "入场并发冲突，请重新提交");
         }
 
         // 7. 启用的绑定车辆写 vehicleId，否则临时车写 null
@@ -135,18 +136,18 @@ public class ParkingEntryService {
                 throw translateDuplicateKey(e);
             }
         }
-        throw new BusinessException(4304, "记录编号生成冲突，请重新提交");
+        throw new BusinessException(ErrorCode.ENTRY_CONFLICT, "记录编号生成冲突，请重新提交");
     }
 
     private BusinessException translateDuplicateKey(DuplicateKeyException e) {
         String message = e.getMessage() == null ? "" : e.getMessage();
         if (message.contains("uk_parking_record_active_plate")) {
-            return new BusinessException(4301, "该车牌已在场，请先办理离场");
+            return new BusinessException(ErrorCode.PLATE_ALREADY_PARKING, "该车牌已在场，请先办理离场");
         }
         if (message.contains("uk_parking_record_active_space")) {
-            return new BusinessException(4304, "入场并发冲突，请重新提交");
+            return new BusinessException(ErrorCode.ENTRY_CONFLICT, "入场并发冲突，请重新提交");
         }
-        return new BusinessException(4304, "入场并发冲突，请重新提交");
+        return new BusinessException(ErrorCode.ENTRY_CONFLICT, "入场并发冲突，请重新提交");
     }
 
     /** 约定：R + UUID 去连字符后的前 31 位，共 32 字符。 */
@@ -173,10 +174,10 @@ public class ParkingEntryService {
     private CurrentUserView requireAdmin() {
         CurrentUserView user = currentUserProvider.currentUser();
         if (user == null) {
-            throw new BusinessException(1003, "请先登录");
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED, "请先登录");
         }
         if (!user.isAdmin()) {
-            throw new BusinessException(1004, "当前账号无权执行该操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "当前账号无权执行该操作");
         }
         return user;
     }

@@ -13,9 +13,10 @@ package org.example.backend.service;
  *       由入场服务抛 {@code BusinessException(4303)}。</li>
  * </ul>
  *
- * <p>当前成员 1/3 的类尚未合并到 {@code dev}，占位实现见
- * {@link PendingParkingEntryDependency}；合并后按
- * {@code docs/成员2_交付与合并操作说明.md} 替换即可，不需要改本接口和入场服务。</p>
+ * <p>当前成员 1 的 {@code ParkingLotGuard} 已合并，适配器见
+ * {@link ParkingEntryDependencyAdapter}；成员 3 的 {@code FeeRuleQuery} 尚未合并，
+ * 取规则方法暂时返回“接口未合并”。合并后按
+ * {@code docs/成员2_交付与合并操作说明.md} 接入，不需要改本接口和入场服务。</p>
  */
 public interface ParkingEntryDependency {
 
