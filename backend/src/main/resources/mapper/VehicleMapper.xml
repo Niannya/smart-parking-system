@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.backend.mapper.VehicleMapper">
+
+    <select id="selectByOwner" resultType="org.example.backend.entity.Vehicle">
+        SELECT v.id,
+               v.license_plate,
+               v.status,
+               v.created_at,
+               v.updated_at
+        FROM vehicle v
+        WHERE v.owner_user_id = #{ownerUserId}
+        ORDER BY v.license_plate
+    </select>
+
+    <select id="selectById" resultType="org.example.backend.entity.Vehicle">
+        SELECT v.id,
+               v.owner_user_id,
+               v.license_plate,
+               v.status,
+               v.created_at,
+               v.updated_at
+        FROM vehicle v
+        WHERE v.id = #{id}
+    </select>
+
+    <insert id="insert"
+            parameterType="org.example.backend.entity.Vehicle"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="id">
+        INSERT INTO vehicle (owner_user_id, license_plate, status)
+        VALUES (#{ownerUserId}, #{licensePlate}, 'ACTIVE')
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE vehicle
+        SET status     = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND owner_user_id = #{ownerUserId}
+    </update>
+
+</mapper>
