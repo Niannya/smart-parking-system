@@ -62,11 +62,13 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 条件更新：并发下状态已被别人改掉时返回 0，由 Service 转成可读冲突 -->
     <update id="updateStatus">
         UPDATE parking_area
         SET status     = #{status},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}
+          AND status = #{expectedStatus}
     </update>
 
     <delete id="deleteById">
@@ -88,17 +90,20 @@
           AND r.status = 'PARKING'
     </select>
 
-    <select id="selectLotStatus" resultType="java.lang.String">
-        SELECT status
-        FROM parking_lot
-        WHERE id = #{lotId}
+    <!-- 先锁停车场行，再判断存在/启用状态；返回 null 表示不存在 -->
+    <select id="lockLotStatus" resultType="java.lang.String">
+        SELECT l.status
+        FROM parking_lot l
+        WHERE l.id = #{lotId}
+        FOR UPDATE
     </select>
 
-    <select id="selectActiveLots" resultType="org.example.backend.dto.ParkingLotOption">
-        SELECT id, lot_code, lot_name
-        FROM parking_lot
-        WHERE status = 'ACTIVE'
-        ORDER BY lot_code
+    <select id="lockLotStatusByAreaId" resultType="java.lang.String">
+        SELECT l.status
+        FROM parking_lot l
+                 JOIN parking_area a ON a.parking_lot_id = l.id
+        WHERE a.id = #{areaId}
+        FOR UPDATE OF l
     </select>
 
 </mapper>
