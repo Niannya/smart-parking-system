@@ -41,10 +41,7 @@ const router = createRouter({
       path: '/admin',
       meta: { role: 'ADMIN' },
       children: [
-        {
-          path: '', name: 'admin-home', component: NoticeView,
-          props: { title: '管理首页', message: '统计模块尚未接入。可从菜单进入账号、停车场或停车区域管理。' },
-        },
+        { path: '', name: 'admin-home', component: () => import('../views/admin/DashboardView.vue') },
         { path: 'users', name: 'admin-users', component: () => import('../views/admin/UsersView.vue') },
         { path: 'lots', name: 'admin-lots', component: () => import('../views/admin/ParkingLotsView.vue') },
         { path: 'areas', name: 'admin-areas', component: () => import('../views/parking/AreaManage.vue') },
