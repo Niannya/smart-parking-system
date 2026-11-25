@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.backend.mapper.FeeRuleMapper">
+
+    <insert id="insert"
+            parameterType="org.example.backend.entity.FeeRule"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="id">
+        INSERT INTO fee_rule (parking_lot_id, rule_name, free_minutes, billing_unit_minutes,
+                              unit_price, max_fee_per_24h, is_active, effective_from, effective_to, created_by)
+        VALUES (#{parkingLotId}, #{ruleName}, #{freeMinutes}, #{billingUnitMinutes},
+                #{unitPrice}, #{maxFeePer24h}, #{isActive}, #{effectiveFrom}, #{effectiveTo}, #{createdBy})
+    </insert>
+
+    <select id="selectById" resultType="org.example.backend.entity.FeeRule">
+        SELECT id, parking_lot_id, rule_name, free_minutes, billing_unit_minutes,
+               unit_price, max_fee_per_24h, is_active, effective_from, effective_to, created_by, created_at
+        FROM fee_rule
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByLot" resultType="org.example.backend.entity.FeeRule">
+        SELECT id, parking_lot_id, rule_name, free_minutes, billing_unit_minutes,
+               unit_price, max_fee_per_24h, is_active, effective_from, effective_to, created_by, created_at
+        FROM fee_rule
+        WHERE parking_lot_id = #{lotId}
+        ORDER BY created_at DESC, id DESC
+    </select>
+
+    <select id="selectActive" resultType="org.example.backend.entity.FeeRule">
+        SELECT id, parking_lot_id, rule_name, free_minutes, billing_unit_minutes,
+               unit_price, max_fee_per_24h, is_active, effective_from, effective_to, created_by, created_at
+        FROM fee_rule
+        WHERE parking_lot_id = #{lotId}
+          AND is_active = true
+    </select>
+
+    <update id="deactivateActive">
+        UPDATE fee_rule
+        SET is_active    = false,
+            effective_to = #{now}
+        WHERE parking_lot_id = #{lotId}
+          AND is_active = true
+    </update>
+
+</mapper>
