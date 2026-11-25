@@ -71,7 +71,7 @@ public class FeeRuleService implements FeeRuleQuery {
     /** POST /api/fee-rules：创建即激活，旧规则转历史 */
     @Transactional(rollbackFor = Exception.class)
     public FeeRule create(FeeRuleCreateRequest request) {
-        Long lotId = requireLotId(request.getLotId());
+        Long lotId = request.requireLotId();
         String ruleName = requiredText(request.getRuleName(), "规则名称", RULE_NAME_MAX_LENGTH);
         // 免费时长/计费单位经 DTO 校验：拒绝小数（Jackson 不会替我们拒绝）、空值与超范围
         int freeMinutes = request.requireFreeMinutes(0);

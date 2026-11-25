@@ -1,5 +1,6 @@
 package org.example.backend.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.example.backend.common.BusinessException;
 import org.example.backend.common.ErrorCode;
 
@@ -16,22 +17,18 @@ import java.math.BigDecimal;
  * Jackson 默认开启 ACCEPT_FLOAT_AS_INT，JSON 小数（如 30.9）会被静默截断成 30，
  * 之后的校验看不到原始小数，管理员会存下与输入不同的规则。
  * 因此在反序列化后的校验阶段（{@link #requireFreeMinutes(int)}、
- * {@link #requireBillingUnitMinutes(int)}）显式拒绝小数，错误信息带回原始输入。</p>
+ * {@link #requireBillingUnitMinutes(int)}）显式拒绝小数。</p>
  */
 public class FeeRuleCreateRequest {
 
-    private Long lotId;
+    private JsonNode lotId;
     private String ruleName;
     private BigDecimal freeMinutes;
     private BigDecimal billingUnitMinutes;
     private BigDecimal unitPrice;
     private BigDecimal maxFeePer24h;
 
-    public Long getLotId() {
-        return lotId;
-    }
-
-    public void setLotId(Long lotId) {
+    public void setLotId(JsonNode lotId) {
         this.lotId = lotId;
     }
 
@@ -75,6 +72,14 @@ public class FeeRuleCreateRequest {
         this.maxFeePer24h = maxFeePer24h;
     }
 
+    /** 只接受正的 JSON 整数，避免小数反序列化成 Long 时被截断为其他停车场 ID。 */
+    public long requireLotId() {
+        if (lotId == null || !lotId.isIntegralNumber() || !lotId.canConvertToLong() || lotId.longValue() <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "停车场 ID 必须是正整数");
+        }
+        return lotId.longValue();
+    }
+
     /**
      * 校验并取得免费时长（整数分钟）：非空、不小于 min、必须是整数。
      * 30.0 / 60.00 这类数值为整数的写法接受；30.9 拒绝（4402）。
@@ -96,7 +101,7 @@ public class FeeRuleCreateRequest {
         }
         if (value.stripTrailingZeros().scale() > 0) {
             throw new BusinessException(ErrorCode.INVALID_FEE_RULE,
-                    label + "必须是整数分钟，不支持小数（收到 " + value.toPlainString() + "）");
+                    label + "必须是整数分钟，不支持小数");
         }
         int result;
         try {
