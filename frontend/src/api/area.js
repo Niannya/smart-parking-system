@@ -1,8 +1,13 @@
 import http from './http'
 
-/** 停车场下拉选项（临时接口，等停车场模块合并后改为调用停车场列表接口） */
+/**
+ * 停车场下拉选项。
+ *
+ * <p>最终契约由成员 1 的停车场模块提供：{@code GET /api/parking-lots/options}。
+ * PR #6 的临时接口 {@code /api/parking-areas/lots} 已按契约移除，页面统一走这里。</p>
+ */
 export function listLotOptions() {
-  return http.get('/api/parking-areas/lots')
+  return http.get('/api/parking-lots/options')
 }
 
 /** 按停车场查询区域，params: { lotId, status } */

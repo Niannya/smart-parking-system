@@ -1,9 +1,9 @@
 package org.example.backend.dto;
 
 /**
- * 状态切换请求体，例如 {"status":"DISABLED"}。
+ * 状态切换请求体，例如 {@code {"status":"DISABLED"}}。
  */
-public class ParkingAreaStatusRequest {
+public class ParkingAreaStatusRequest extends RejectUnknownJsonRequest {
 
     private String status;
 
