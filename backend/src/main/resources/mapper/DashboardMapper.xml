@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.backend.mapper.DashboardMapper">
+    <resultMap id="summaryCounts" type="org.example.backend.mapper.DashboardMapper$Counts">
+        <constructor>
+            <arg column="total_spaces" javaType="_long"/>
+            <arg column="free_spaces" javaType="_long"/>
+            <arg column="occupied_spaces" javaType="_long"/>
+            <arg column="disabled_spaces" javaType="_long"/>
+            <arg column="entry_count" javaType="_long"/>
+            <arg column="exit_count" javaType="_long"/>
+            <arg column="total_revenue" javaType="java.math.BigDecimal"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 在同一个查询快照中独立聚合，避免车位、记录、支付的多表连接放大计数。 -->
+    <select id="selectSummary" resultMap="summaryCounts">
+        WITH selected_lots AS (
+            SELECT id FROM parking_lot
+            <if test="lotId != null">WHERE id = #{lotId}</if>
+        ),
+        spaces AS (
+            SELECT COUNT(*) AS total_spaces,
+                   COUNT(*) FILTER (WHERE s.status = 'FREE') AS free_spaces,
+                   COUNT(*) FILTER (WHERE s.status = 'OCCUPIED') AS occupied_spaces,
+                   COUNT(*) FILTER (WHERE s.status = 'DISABLED') AS disabled_spaces
+            FROM parking_space s
+            JOIN parking_area a ON a.id = s.area_id
+            JOIN selected_lots l ON l.id = a.parking_lot_id
+        ),
+        entries AS (
+            SELECT COUNT(*) AS entry_count
+            FROM parking_record r
+            JOIN selected_lots l ON l.id = r.parking_lot_id
+            WHERE r.entry_time &gt;= #{dayStart} AND r.entry_time &lt; #{dayEnd}
+        ),
+        exits AS (
+            SELECT COUNT(*) AS exit_count
+            FROM parking_record r
+            JOIN selected_lots l ON l.id = r.parking_lot_id
+            WHERE r.exit_time &gt;= #{dayStart} AND r.exit_time &lt; #{dayEnd}
+        ),
+        revenue AS (
+            SELECT COALESCE(SUM(p.amount_paid), 0.00) AS total_revenue
+            FROM payment_record p
+            JOIN parking_record r ON r.id = p.parking_record_id
+            JOIN selected_lots l ON l.id = r.parking_lot_id
+            WHERE p.payment_time &gt;= #{dayStart} AND p.payment_time &lt; #{dayEnd}
+              AND r.status != 'ABNORMAL'
+        )
+        SELECT s.total_spaces, s.free_spaces, s.occupied_spaces, s.disabled_spaces,
+               i.entry_count, x.exit_count, p.total_revenue
+        FROM spaces s
+        CROSS JOIN entries i
+        CROSS JOIN exits x
+        CROSS JOIN revenue p
+        <if test="lotId != null">WHERE EXISTS (SELECT 1 FROM selected_lots)</if>
+    </select>
+</mapper>
