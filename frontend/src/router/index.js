@@ -43,10 +43,10 @@ const router = createRouter({
       children: [
         {
           path: '', name: 'admin-home', component: NoticeView,
-          props: { title: '管理首页', message: '统计模块尚未接入。可从菜单进入账号管理或停车区域。' },
+          props: { title: '管理首页', message: '统计模块尚未接入。可从菜单进入账号、停车场或停车区域管理。' },
         },
         { path: 'users', name: 'admin-users', component: () => import('../views/admin/UsersView.vue') },
-        pending('lots', 'admin-lots', '停车场'),
+        { path: 'lots', name: 'admin-lots', component: () => import('../views/admin/ParkingLotsView.vue') },
         { path: 'areas', name: 'admin-areas', component: () => import('../views/parking/AreaManage.vue') },
         pending('spaces', 'admin-spaces', '停车位'),
         pending('entries', 'admin-entries', '车辆入场'),
