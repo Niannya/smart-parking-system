@@ -2,6 +2,7 @@ package org.example.backend.service;
 
 import org.example.backend.common.BusinessException;
 import org.example.backend.common.ErrorCode;
+import org.example.backend.dto.DashboardRevenueDto;
 import org.example.backend.dto.DashboardSummaryDto;
 import org.example.backend.mapper.DashboardMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.regex.Pattern;
 
@@ -60,6 +62,45 @@ public class DashboardService {
         return new DashboardSummaryDto(lotId, date, counts.totalSpaces(), counts.freeSpaces(),
                 counts.occupiedSpaces(), counts.disabledSpaces(), occupancyRate,
                 counts.entryCount(), counts.exitCount(), counts.totalRevenue().setScale(2));
+    }
+
+    @Transactional(readOnly = true)
+    public DashboardRevenueDto revenue(String rawLotId, String rawFrom, String rawTo) {
+        Long lotId = parseLotId(rawLotId);
+        OffsetDateTime from = parseRangeEndpoint(rawFrom, "from");
+        OffsetDateTime to = parseRangeEndpoint(rawTo, "to");
+        if (!from.isBefore(to)) {
+            throw new BusinessException(ErrorCode.INVALID_DATE_RANGE, "from 必须早于 to");
+        }
+
+        DashboardMapper.RevenueCounts counts = dashboard.selectRevenue(
+                lotId, toDatabaseBoundary(from), toDatabaseBoundary(to));
+        if (counts == null) {
+            throw new BusinessException(ErrorCode.LOT_NOT_FOUND, "停车场不存在");
+        }
+        return new DashboardRevenueDto(lotId, from, to, counts.paymentCount(), counts.totalRevenue().setScale(2));
+    }
+
+    private static OffsetDateTime parseRangeEndpoint(String rawValue, String parameter) {
+        if (rawValue != null) {
+            try {
+                OffsetDateTime value = OffsetDateTime.parse(rawValue);
+                if (value.getYear() >= 1 && value.getYear() <= 9999) {
+                    return value;
+                }
+                throw new BusinessException(ErrorCode.INVALID_DATE_RANGE, parameter + " 的年份须在 0001–9999 之间");
+            } catch (DateTimeParseException ignored) {
+                // 缺少时区偏移或时间无效时，统一返回区间参数错误。
+            }
+        }
+        throw new BusinessException(ErrorCode.INVALID_DATE_RANGE, parameter + " 必须是带时区偏移的 ISO 8601 时间");
+    }
+
+    private static OffsetDateTime toDatabaseBoundary(OffsetDateTime value) {
+        OffsetDateTime utc = value.withOffsetSameInstant(ZoneOffset.UTC);
+        // 库内支付时间只到微秒；两侧向上取至微秒，保持 >= from 和 < to 的判断不变。
+        int remainder = utc.getNano() % 1_000;
+        return remainder == 0 ? utc : utc.plusNanos(1_000 - remainder);
     }
 
     private static Long parseLotId(String rawLotId) {

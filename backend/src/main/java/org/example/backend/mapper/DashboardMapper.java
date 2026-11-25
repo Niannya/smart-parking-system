@@ -13,8 +13,16 @@ public interface DashboardMapper {
                   long entryCount, long exitCount, BigDecimal totalRevenue) {
     }
 
+    record RevenueCounts(long paymentCount, BigDecimal totalRevenue) {
+    }
+
     /** 指定停车场不存在时返回 null；存在但无数据时各聚合值返回零。 */
     Counts selectSummary(@Param("lotId") Long lotId,
-                         @Param("dayStart") OffsetDateTime dayStart,
-                         @Param("dayEnd") OffsetDateTime dayEnd);
+                         @Param("fromTime") OffsetDateTime dayStart,
+                         @Param("toTime") OffsetDateTime dayEnd);
+
+    /** 按支付时间的半开区间聚合；指定停车场不存在时返回 null。 */
+    RevenueCounts selectRevenue(@Param("lotId") Long lotId,
+                                @Param("fromTime") OffsetDateTime fromTime,
+                                @Param("toTime") OffsetDateTime toTime);
 }

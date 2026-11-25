@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import org.example.backend.common.ApiResult;
+import org.example.backend.dto.DashboardRevenueDto;
 import org.example.backend.dto.DashboardSummaryDto;
 import org.example.backend.service.DashboardService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,5 +24,13 @@ public class DashboardController {
             @RequestParam(name = "lotId", required = false) String lotId,
             @RequestParam(name = "date", required = false) String date) {
         return ApiResult.ok(dashboard.summary(lotId, date));
+    }
+
+    @GetMapping("/revenue")
+    public ApiResult<DashboardRevenueDto> revenue(
+            @RequestParam(name = "lotId", required = false) String lotId,
+            @RequestParam(name = "from", required = false) String from,
+            @RequestParam(name = "to", required = false) String to) {
+        return ApiResult.ok(dashboard.revenue(lotId, from, to));
     }
 }

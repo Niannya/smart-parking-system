@@ -16,11 +16,30 @@
         </constructor>
     </resultMap>
 
+    <resultMap id="revenueCounts" type="org.example.backend.mapper.DashboardMapper$RevenueCounts">
+        <constructor>
+            <arg column="payment_count" javaType="_long"/>
+            <arg column="total_revenue" javaType="java.math.BigDecimal"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="selectedLots">
+        SELECT id FROM parking_lot
+        <if test="lotId != null">WHERE id = #{lotId}</if>
+    </sql>
+
+    <sql id="paymentsInRange">
+        FROM payment_record p
+        JOIN parking_record r ON r.id = p.parking_record_id
+        JOIN selected_lots l ON l.id = r.parking_lot_id
+        WHERE p.payment_time &gt;= #{fromTime} AND p.payment_time &lt; #{toTime}
+          AND r.status != 'ABNORMAL'
+    </sql>
+
     <!-- 在同一个查询快照中独立聚合，避免车位、记录、支付的多表连接放大计数。 -->
     <select id="selectSummary" resultMap="summaryCounts">
         WITH selected_lots AS (
-            SELECT id FROM parking_lot
-            <if test="lotId != null">WHERE id = #{lotId}</if>
+            <include refid="selectedLots"/>
         ),
         spaces AS (
             SELECT COUNT(*) AS total_spaces,
@@ -35,21 +54,17 @@
             SELECT COUNT(*) AS entry_count
             FROM parking_record r
             JOIN selected_lots l ON l.id = r.parking_lot_id
-            WHERE r.entry_time &gt;= #{dayStart} AND r.entry_time &lt; #{dayEnd}
+            WHERE r.entry_time &gt;= #{fromTime} AND r.entry_time &lt; #{toTime}
         ),
         exits AS (
             SELECT COUNT(*) AS exit_count
             FROM parking_record r
             JOIN selected_lots l ON l.id = r.parking_lot_id
-            WHERE r.exit_time &gt;= #{dayStart} AND r.exit_time &lt; #{dayEnd}
+            WHERE r.exit_time &gt;= #{fromTime} AND r.exit_time &lt; #{toTime}
         ),
         revenue AS (
             SELECT COALESCE(SUM(p.amount_paid), 0.00) AS total_revenue
-            FROM payment_record p
-            JOIN parking_record r ON r.id = p.parking_record_id
-            JOIN selected_lots l ON l.id = r.parking_lot_id
-            WHERE p.payment_time &gt;= #{dayStart} AND p.payment_time &lt; #{dayEnd}
-              AND r.status != 'ABNORMAL'
+            <include refid="paymentsInRange"/>
         )
         SELECT s.total_spaces, s.free_spaces, s.occupied_spaces, s.disabled_spaces,
                i.entry_count, x.exit_count, p.total_revenue
@@ -57,6 +72,19 @@
         CROSS JOIN entries i
         CROSS JOIN exits x
         CROSS JOIN revenue p
+        <if test="lotId != null">WHERE EXISTS (SELECT 1 FROM selected_lots)</if>
+    </select>
+
+    <select id="selectRevenue" resultMap="revenueCounts">
+        WITH selected_lots AS (
+            <include refid="selectedLots"/>
+        ),
+        totals AS (
+            SELECT COUNT(*) AS payment_count, COALESCE(SUM(p.amount_paid), 0.00) AS total_revenue
+            <include refid="paymentsInRange"/>
+        )
+        SELECT payment_count, total_revenue
+        FROM totals
         <if test="lotId != null">WHERE EXISTS (SELECT 1 FROM selected_lots)</if>
     </select>
 </mapper>
