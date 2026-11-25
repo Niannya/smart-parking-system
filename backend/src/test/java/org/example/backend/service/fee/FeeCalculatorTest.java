@@ -168,6 +168,47 @@ class FeeCalculatorTest {
     }
 
     @Nested
+    @DisplayName("亚秒精度（review 修复：30 分 0.5 秒应按 31 分钟计费）")
+    class SubSecondPrecision {
+
+        @Test
+        void halfSecondOverFreeMinutesCostsOneUnit() {
+            // 免费 30 分钟，停 30 分 0.5 秒：必须向上进到 31 分钟、收一个单位
+            FeeCalculator.FeeResult result =
+                    FeeCalculator.calculate(ENTRY, ENTRY.plusMinutes(30).plusNanos(500_000_000L), DEFAULT_RULE);
+            assertEquals(31, result.durationMinutes());
+            assertEquals(money("5.00"), result.amountDue());
+        }
+
+        @Test
+        void exactlyFreeMinutesWithZeroNanosIsFree() {
+            FeeCalculator.FeeResult result =
+                    FeeCalculator.calculate(ENTRY, ENTRY.plusMinutes(30), DEFAULT_RULE);
+            assertEquals(30, result.durationMinutes());
+            assertEquals(money("0.00"), result.amountDue());
+        }
+
+        @Test
+        void oneMilliSecondCountsAsOneMinute() {
+            FeeRuleSnapshot rule = new FeeRuleSnapshot(7L, "无免费", 0, 60,
+                    new BigDecimal("5.00"), new BigDecimal("50.00"));
+            FeeCalculator.FeeResult result =
+                    FeeCalculator.calculate(ENTRY, ENTRY.plusNanos(1_000_000L), rule);
+            assertEquals(1, result.durationMinutes());
+            assertEquals(money("5.00"), result.amountDue());
+        }
+
+        @Test
+        void ceilMinutesKeepsSubSecond() {
+            assertEquals(30L, FeeCalculator.ceilMinutes(ENTRY, ENTRY.plusMinutes(30)));
+            assertEquals(31L, FeeCalculator.ceilMinutes(ENTRY, ENTRY.plusMinutes(30).plusNanos(1L)));
+            assertEquals(31L, FeeCalculator.ceilMinutes(ENTRY, ENTRY.plusSeconds(30 * 60 + 1)));
+            assertEquals(1L, FeeCalculator.ceilMinutes(ENTRY, ENTRY.plusNanos(1L)));
+            assertEquals(0L, FeeCalculator.ceilMinutes(ENTRY, ENTRY));
+        }
+    }
+
+    @Nested
     @DisplayName("非法输入")
     class InvalidInput {
 

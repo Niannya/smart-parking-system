@@ -73,8 +73,9 @@ public class FeeRuleService implements FeeRuleQuery {
     public FeeRule create(FeeRuleCreateRequest request) {
         Long lotId = requireLotId(request.getLotId());
         String ruleName = requiredText(request.getRuleName(), "规则名称", RULE_NAME_MAX_LENGTH);
-        int freeMinutes = requiredMinutes(request.getFreeMinutes(), "免费时长", 0);
-        int billingUnitMinutes = requiredMinutes(request.getBillingUnitMinutes(), "计费单位分钟", 1);
+        // 免费时长/计费单位经 DTO 校验：拒绝小数（Jackson 不会替我们拒绝）、空值与超范围
+        int freeMinutes = request.requireFreeMinutes(0);
+        int billingUnitMinutes = request.requireBillingUnitMinutes(1);
         BigDecimal unitPrice = requiredMoney(request.getUnitPrice(), "单位价格");
         BigDecimal maxFeePer24h = requiredMoney(request.getMaxFeePer24h(), "24 小时封顶费");
 
@@ -155,17 +156,6 @@ public class FeeRuleService implements FeeRuleQuery {
                     label + "包含无效字符或超过 " + maxLength + " 个字符");
         }
         return text;
-    }
-
-    private static int requiredMinutes(Integer value, String label, int min) {
-        if (value == null) {
-            throw new BusinessException(ErrorCode.INVALID_FEE_RULE, label + "不能为空");
-        }
-        if (value < min) {
-            throw new BusinessException(ErrorCode.INVALID_FEE_RULE,
-                    label + (min <= 0 ? "不能为负" : "必须为正数"));
-        }
-        return value;
     }
 
     private static BigDecimal requiredMoney(BigDecimal value, String label) {
